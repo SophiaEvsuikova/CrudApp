@@ -1,9 +1,14 @@
 package crudAppilcation
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.web.bind.annotation.*
 
+
 @RestController
-class PersonController(val personService: PersonService) {
+class PersonController {
+
+    @Autowired
+    lateinit var personService: PersonService
 
     @GetMapping("/people")
     fun getAll(): List<Person> {
@@ -21,17 +26,17 @@ class PersonController(val personService: PersonService) {
     }
 
     @GetMapping("/person/id/{id}")
-    fun getById(@PathVariable id: String): Person? =
+    fun getById(@PathVariable id: Int): Person? =
         personService.getById(id)
 
     @DeleteMapping("/delete")
-    fun delete(@RequestParam id: String){
-        personService.delete(id)
+    fun delete(@RequestParam id: Int): List<Person> {
+        return personService.delete(id)
     }
 
     @GetMapping("/person")
     @ResponseBody
-    fun post(@RequestParam id: String, @RequestParam name: String,@RequestParam  lastname: String) {
-        personService.post(id, name, lastname)
+    fun insert(@RequestParam name: String, @RequestParam  lastname: String): List<Person> {
+        return personService.insert(name, lastname)
     }
 }

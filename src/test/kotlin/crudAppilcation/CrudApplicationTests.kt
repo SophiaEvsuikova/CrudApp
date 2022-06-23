@@ -1,42 +1,130 @@
 package crudAppilcation
 
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
+import org.mockito.Mockito.*
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.boot.test.web.client.TestRestTemplate
 
-@SpringBootTest(
-    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
-    properties = [
-        "spring.datasource.url=jdbc:postgresql:testdb"
-    ]
-)
-class CrudApplicationTests(@Autowired val client: TestRestTemplate) {
+@SpringBootTest
+class CrudApplicationTests {
+
+    val elements : MutableList<Person> = mutableListOf(
+        Person(1,"Радж", "Кутропале"),
+        Person(2, "Шелдлон", "Купер"),
+        Person(3, "Леонард", "Хофстедер"),
+        Person(4, "Говард", "Воловиц"),
+    )
+
+    val id = 2
+    val name = "Шелдон"
+    val lastname = "Купер"
+
 
     @Test
-    fun `testing if we can post and retrieve the data`() {
-        val id = "6"
-        val person = Person(id, "some message","some LastName")
-        client.postForObject<Person>("/", person)
+    fun getAllTest(){
+        // initial parameters
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.getAll()).thenReturn(elements)
 
-        val entity = client.getForEntity<String>("/$id")
-        assertThat(entity.statusCode).isEqualTo(HttpStatus.OK)
-        assertThat(entity.body).contains(person.id)
-        assertThat(entity.body).contains(person.name)
+        // action
+        val result = mockedObject.getAll()
 
-        val msg = client.getForObject<Person>("/$id")!!
-        assertThat(entity.statusCode).isEqualTo(HttpStatus.OK)
-        assertThat(msg.id).isEqualTo(person.id)
-        assertThat(msg.name).contains(person.name)
+        // result
+        assertEquals(result.count(), elements.count())
+        assertSame(result, elements)
+    }
+    @Test
+    fun getByIdTest() {
+        // initial parameters
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.getById(id = id)).thenReturn(elements[id - 1])
+
+        // action
+        val result = mockedObject.getById(id)
+
+        // result
+        assertEquals(result, elements[id - 1])
+        assertSame(result, elements[id - 1])
     }
 
     @Test
-    fun `message not found`() {
-        val id = "${Random.nextInt()}".uuid()
-        val entity = client.getForEntity<String>("/$id")
-        assertThat(entity.statusCode).isEqualTo(HttpStatus.NOT_FOUND)
+    fun getByNameTest() {
+        // initial parameters
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.getByName(name = name)).thenReturn(elements[1])
+
+        // action
+        val result = mockedObject.getByName(name)
+
+        // result
+        assertEquals(result, elements[1])
+        assertSame(result, elements[1])
+    }
+
+    @Test
+    fun getByLastNameTest() {
+        // initial parameters
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.getByName(name = lastname)).thenReturn(elements[1])
+
+        // action
+        val result = mockedObject.getByName(lastname)
+
+        // result
+        assertEquals(result, elements[1])
+        assertSame(result, elements[1])
+    }
+
+    fun deleteObject(list:MutableList<Person>, id: Int): List<Person> {
+
+        val  element = list.find { it.id == id }
+
+        return if (element == null)
+            list
+        else {
+            elements.remove(element)
+            elements
+        }
+    }
+
+    @Test
+    fun deleteTest(){
+        // initial parameters
+        val originalSize = elements.size
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.delete(id = id)).thenReturn(deleteObject(elements, id))
+
+        // action
+        val result = mockedObject.delete(2)
+
+        // result
+        assertEquals(elements.size, originalSize - 1)
+        assertSame(elements, result)
     }
 
 
+    fun insertObj(list:MutableList<Person>, name: String, lastName: String): List<Person> {
+        val maxId = elements.maxOfOrNull { it.id }
+        if (maxId != null) {
+            elements.add(Person(maxId + 1,name, lastname))
+        }
+        return elements
+    }
 
+
+    @Test
+    fun insertTest(){
+        // initial parameters
+        val originalSize = elements.size
+
+        val mockedObject = mock(PersonService::class.java)
+        `when`(mockedObject.insert(name, lastname)).thenReturn(insertObj(elements, name, lastname))
+
+        // action
+        val result = mockedObject.insert(name, lastname)
+
+        // result
+        assertEquals(elements.size, originalSize + 1)
+        assertSame(elements, result)
+    }
 }

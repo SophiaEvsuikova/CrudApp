@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS Person
 (
-    id   VARCHAR(10) PRIMARY KEY,
+    id   SERIAL,
     name VARCHAR(50) NOT NULL,
     lastname VARCHAR(50) NOT NULL
 );

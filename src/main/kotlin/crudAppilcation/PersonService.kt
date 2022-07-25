@@ -37,6 +37,10 @@ class PersonService(var db: JdbcTemplate) {
                rs.getString("lastName"))
     }.firstOrNull()
 
+    //FIXME методы insert и delete имеют неочивидную и опасную логику при работе в реальном приложении
+    // - обычно ожидается, что инсерт делает только вставку, а делит только удаление, getAll() идет в базу и получает все сущности из таблицы,
+    // - что снижает производительность приложения
+    // - лучше ничего не возвращать или возвращать результат метода update
     fun delete(id: Int): List<Person> {
         db.update("DELETE FROM person WHERE id = ?", id)
         return getAll()

@@ -4,6 +4,9 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.query
 import org.springframework.stereotype.Service
 
+
+data class Person(val id: Int, val name: String, val lastName: String)
+
 @Service
 class PersonService(var db: JdbcTemplate) {
 
@@ -37,13 +40,11 @@ class PersonService(var db: JdbcTemplate) {
                rs.getString("lastName"))
     }.firstOrNull()
 
-    fun delete(id: Int): List<Person> {
+    fun delete(id: Int) {
         db.update("DELETE FROM person WHERE id = ?", id)
-        return getAll()
     }
 
-    fun insert(name: String, lastName: String): List<Person>{
+    fun insert(name: String, lastName: String) {
         db.update("insert into person(name, lastname) values (?, ?)", name, lastName)
-        return getAll()
     }
 }

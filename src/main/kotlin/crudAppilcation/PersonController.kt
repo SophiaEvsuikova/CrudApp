@@ -30,13 +30,13 @@ class PersonController {
         personService.getById(id)
 
     @DeleteMapping("/delete")
-    fun delete(@RequestParam id: Int): List<Person> {
-        return personService.delete(id)
+    fun delete(@RequestParam id: Int) {
+        personService.delete(id)
     }
 
     @GetMapping("/person")
     @ResponseBody
-    fun insert(@RequestParam name: String, @RequestParam  lastname: String): List<Person> {
-        return personService.insert(name, lastname)
+    fun insert(@RequestParam name: String, @RequestParam  lastname: String) {
+        personService.insert(name, lastname)
     }
 }

@@ -1,130 +1,114 @@
 package crudAppilcation
 
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito.*
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.test.web.client.TestRestTemplate
+import org.springframework.boot.test.web.client.getForEntity
+import org.springframework.jdbc.core.JdbcTemplate
+import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.junit.jupiter.Container
+import org.testcontainers.junit.jupiter.Testcontainers
 
-@SpringBootTest
+class MyPostgreSQLContainer(imageName: String) : PostgreSQLContainer<MyPostgreSQLContainer>(imageName)
+
+@SpringBootTest(
+    webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
+)
+
+@Testcontainers
 class CrudApplicationTests {
 
-    val elements : MutableList<Person> = mutableListOf(
-        Person(1,"Радж", "Кутропале"),
-        Person(2, "Шелдлон", "Купер"),
-        Person(3, "Леонард", "Хофстедер"),
-        Person(4, "Говард", "Воловиц"),
-    )
+    @Autowired
+    val client: TestRestTemplate = TestRestTemplate()
 
-    val id = 2
-    val name = "Шелдон"
-    val lastname = "Купер"
+    @Autowired
+    lateinit var personService: PersonService
 
+    @Autowired
+    val jdbc: JdbcTemplate = JdbcTemplate()
 
-    @Test
-    fun getAllTest(){
-        // initial parameters
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.getAll()).thenReturn(elements)
-
-        // action
-        val result = mockedObject.getAll()
-
-        // result
-        assertEquals(result.count(), elements.count())
-        assertSame(result, elements)
+    companion object{
+        @Container
+        val container: MyPostgreSQLContainer = MyPostgreSQLContainer("postgres:latest")
     }
+
+    @AfterEach
+    fun cleanup() {
+        jdbc.execute("truncate table person")
+    }
+
+    val name = "Александр"
+    val lastname = "Пушкин"
+
     @Test
-    fun getByIdTest() {
-        // initial parameters
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.getById(id = id)).thenReturn(elements[id - 1])
-
-        // action
-        val result = mockedObject.getById(id)
-
-        // result
-        assertEquals(result, elements[id - 1])
-        assertSame(result, elements[id - 1])
+    fun testContainerRunning() {
+        assertTrue(container.isRunning)
     }
 
     @Test
-    fun getByNameTest() {
-        // initial parameters
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.getByName(name = name)).thenReturn(elements[1])
+    fun testGetPeople () {
+        // arrange
+        client.getForEntity<String>("/person?name=$name&lastname=$lastname")
+        val people = personService.getAll()
 
-        // action
-        val result = mockedObject.getByName(name)
+        // act
+        val entity = client.getForEntity<String>("/people")
 
-        // result
-        assertEquals(result, elements[1])
-        assertSame(result, elements[1])
+        // assert
+        assertThat(entity.body).contains(people[0].name,people[0].lastName)
     }
 
     @Test
-    fun getByLastNameTest() {
-        // initial parameters
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.getByName(name = lastname)).thenReturn(elements[1])
+    fun testGetByName() {
+        // arrange
+        client.getForEntity<String>("/person?name=$name&lastname=$lastname")
 
-        // action
-        val result = mockedObject.getByName(lastname)
+        // act
+        val entity = client.getForEntity<String>("/person/name/$name")
 
-        // result
-        assertEquals(result, elements[1])
-        assertSame(result, elements[1])
-    }
-
-    fun deleteObject(list:MutableList<Person>, id: Int): List<Person> {
-
-        val  element = list.find { it.id == id }
-
-        return if (element == null)
-            list
-        else {
-            elements.remove(element)
-            elements
-        }
+        // assert
+        assertThat(entity.body).contains(name)
     }
 
     @Test
-    fun deleteTest(){
-        // initial parameters
-        val originalSize = elements.size
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.delete(id = id)).thenReturn(deleteObject(elements, id))
+    fun testGetByLastName() {
+        // arrange
+        client.getForEntity<String>("/person?name=$name&lastname=$lastname")
 
-        // action
-        val result = mockedObject.delete(2)
+        // act
+        val entity = client.getForEntity<String>("/person/lastname/$lastname")
 
-        // result
-        assertEquals(elements.size, originalSize - 1)
-        assertSame(elements, result)
+        // assert
+        assertThat(entity.body).contains(lastname)
     }
-
-
-    fun insertObj(list:MutableList<Person>, name: String, lastName: String): List<Person> {
-        val maxId = elements.maxOfOrNull { it.id }
-        if (maxId != null) {
-            elements.add(Person(maxId + 1,name, lastname))
-        }
-        return elements
-    }
-
 
     @Test
-    fun insertTest(){
-        // initial parameters
-        val originalSize = elements.size
+    fun testInsertPeople() {
+        // arrange
+        client.getForEntity<String>("/person?name=$name&lastname=$lastname")
 
-        val mockedObject = mock(PersonService::class.java)
-        `when`(mockedObject.insert(name, lastname)).thenReturn(insertObj(elements, name, lastname))
+        // act
+        val people = client.getForEntity<String>("/people")
 
-        // action
-        val result = mockedObject.insert(name, lastname)
+        // assert
+        assertThat(people.body).contains(name, lastname)
+    }
 
-        // result
-        assertEquals(elements.size, originalSize + 1)
-        assertSame(elements, result)
+    @Test
+    fun testDeletePeople() {
+        // arrange
+        client.getForEntity<String>("/person?name=$name&lastname=$lastname")
+        val person = personService.getByName(name)!!
+
+        // act
+        client.delete("/delete?id=" + person.id)
+        val emptyPerson = personService.getById(person.id)
+
+        // assert
+        assertNull(emptyPerson)
     }
 }

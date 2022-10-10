@@ -25,6 +25,10 @@ class CrudApplicationTests {
     @Autowired
     val client: TestRestTemplate = TestRestTemplate()
 
+    //FIXME для данной задачи таких тестов достаточно
+    // но в качестве тренировки можно вынести изолированные тесты на PersonService (сейчас здесь по сути написаны интеграционные тесты)
+    // PersonService может быть использован в разных частях системы, его набор методов может быть расширен и тд
+    // хорошо бы быть уверенным, что отдельные части системы работают корректно сами по себе
     @Autowired
     lateinit var personService: PersonService
 
